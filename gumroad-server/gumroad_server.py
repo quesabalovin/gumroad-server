@@ -14,16 +14,16 @@ app = Flask(__name__)
 # --- Email Settings ---
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
-FROM_EMAIL = "lovinquesaba@gmail.com"       # <-- your Gmail
-FROM_PASSWORD = "uxwszckyahsyklpv"           # <-- your Gmail App Password
+FROM_EMAIL = "lovinquesaba@gmail.com"
+FROM_PASSWORD = "uxwszckyahsyklpv"
 
-# --- GitHub Settings ---
+# --- GitHub Settings (Fine-Grained Token Format) ---
 GITHUB_REPO_URL = "https://github.com/quesabalovin/pdf_table_extractor.git"
 GITHUB_CLONE_DIR = "/tmp/pdf_table_extractor_clone"
 GITHUB_BRANCH = "main"
 GIT_USERNAME = "quesabalovin"
 GIT_EMAIL = "lovin.quesaba@gmail.com"
-GITHUB_TOKEN = "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"
+GITHUB_TOKEN = "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"  # <-- Make sure this token has repo access to pdf_table_extractor
 
 # --- Local Credentials File ---
 CREDENTIALS_FILE = "credentials.json"
@@ -61,33 +61,30 @@ def send_email(to_email, username, password):
         server.sendmail(FROM_EMAIL, to_email, msg.as_string())
         server.quit()
 
-        print("\u2705 Email sent successfully!")
+        print("✅ Email sent successfully!")
     except Exception as e:
         print(f"❌ Failed to send email: {e}")
 
 # === GitHub Auto-Update Credentials.json ===
 def update_credentials_in_repo(new_email, new_password):
     try:
-        # --- Step 1: Clone fresh repo ---
         if os.path.exists(GITHUB_CLONE_DIR):
             shutil.rmtree(GITHUB_CLONE_DIR)
 
+        repo_url_with_auth = f"https://{GIT_USERNAME}:{GITHUB_TOKEN}@github.com/{GIT_USERNAME}/pdf_table_extractor.git"
+
         subprocess.check_call([
-            "git", "clone",
-            f"https://{GIT_USERNAME}:{GITHUB_TOKEN}@github.com/{GIT_USERNAME}/pdf_table_extractor.git",
-            GITHUB_CLONE_DIR
+            "git", "clone", repo_url_with_auth, GITHUB_CLONE_DIR
         ])
 
         credentials_path = os.path.join(GITHUB_CLONE_DIR, "credentials.json")
 
-        # --- Step 2: Load existing credentials ---
         if os.path.exists(credentials_path):
             with open(credentials_path, "r") as f:
                 credentials_data = json.load(f)
         else:
             credentials_data = {}
 
-        # --- Step 3: Add new user ---
         credentials_data[new_email] = {
             "password": new_password,
             "credits": 10
@@ -96,20 +93,17 @@ def update_credentials_in_repo(new_email, new_password):
         with open(credentials_path, "w") as f:
             json.dump(credentials_data, f, indent=2)
 
-        # --- Step 4: Commit and Push ---
         subprocess.check_call(["git", "config", "--global", "user.email", GIT_EMAIL])
         subprocess.check_call(["git", "config", "--global", "user.name", GIT_USERNAME])
-
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "add", "credentials.json"])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "commit", "-m", f"Add new user {new_email}"])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "push", "origin", GITHUB_BRANCH])
 
-        print("\u2705 Successfully updated credentials.json and pushed to GitHub!")
+        print("✅ Successfully updated credentials.json and pushed to GitHub!")
 
     except Exception as e:
         print(f"❌ Failed to update credentials.json in GitHub: {e}")
 
-# === Gumroad Ping Handler ===
 @app.route("/gumroad_ping", methods=["POST"])
 def gumroad_ping():
     data = request.form
@@ -119,25 +113,17 @@ def gumroad_ping():
     if not email or not product_id:
         return "Missing required fields", 400
 
-    # --- Step 1: Generate password ---
     password = generate_password()
-
-    # --- Step 2: Update Local Credentials ---
     credentials = load_json(CREDENTIALS_FILE)
     credentials[email] = {
         "password": password,
         "credits": 10
     }
     save_json(CREDENTIALS_FILE, credentials)
-
-    # --- Step 3: Send email to user ---
     send_email(email, email, password)
-
-    # --- Step 4: Update GitHub Repo credentials.json ---
     update_credentials_in_repo(email, password)
 
-    return "\u2705 Credentials created and email sent!", 200
+    return "✅ Credentials created and email sent!", 200
 
-# === Run App ===
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
