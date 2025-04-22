@@ -26,8 +26,8 @@ USERS = load_users()
 # --- Email Settings ---
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
-FROM_EMAIL = "lovin.quesaba@gmail.com"  # <-- CHANGE THIS
-FROM_PASSWORD = "@Simpletricks21"  # <-- CHANGE THIS
+FROM_EMAIL = "lovinquesaba@gmail.com"  # <-- CHANGE THIS
+FROM_PASSWORD = "uxwszckyahsyklpv"  # <-- CHANGE THIS
 
 # --- Flask App ---
 app = Flask(__name__)
