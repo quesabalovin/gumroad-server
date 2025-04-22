@@ -14,40 +14,39 @@ app = Flask(__name__)
 # --- Email Settings ---
 SMTP_SERVER   = "smtp.gmail.com"
 SMTP_PORT     = 465
-FROM_EMAIL    = "lovinquesaba@gmail.com"         # <-- your Gmail
-FROM_PASSWORD = "uxwszckyahsyklpv"                # <-- your Gmail App Password
+FROM_EMAIL    = "lovinquesaba@gmail.com"         # your Gmail
+FROM_PASSWORD = "uxwszckyahsyklpv"                # your App Password
 
-# --- GitHub Settings (Fine-Grained Token) ---
-GITHUB_REPO_URL  = "https://github.com/quesabalovin/pdf_table_extractor.git"
+# --- GitHub Settings (Fine‑Grained Token) ---
 GITHUB_CLONE_DIR = "/tmp/pdf_table_extractor_clone"
-GITHUB_BRANCH    = "main"
 GIT_USERNAME     = "quesabalovin"
 GIT_EMAIL        = "lovin.quesaba@gmail.com"
-GITHUB_TOKEN     = "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"  # <-- your fine-grained token
+GITHUB_TOKEN     = "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"
+GITHUB_BRANCH    = "main"  # or "master"
+REPO_NAME        = "pdf_table_extractor"
 
 # --- Local Credentials File ---
 CREDENTIALS_FILE = "credentials.json"
 
-# === File Utilities ===
-def load_json(filename):
-    if not os.path.exists(filename):
+# === Utils ===
+def load_json(path):
+    if not os.path.exists(path):
         return {}
-    with open(filename, "r") as f:
+    with open(path, "r") as f:
         return json.load(f)
 
-def save_json(filename, data):
-    with open(filename, "w") as f:
+def save_json(path, data):
+    with open(path, "w") as f:
         json.dump(data, f, indent=2)
 
-# === Helper to Generate Random Password ===
 def generate_password(length=10):
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+    return "".join(random.choices(string.ascii_letters + string.digits, k=length))
 
-# === Email Sending ===
+# === Email ===
 def send_email(to_email, username, password):
     try:
-        context = ssl.create_default_context()
-        server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, context=context)
+        ctx    = ssl.create_default_context()
+        server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, context=ctx)
         server.login(FROM_EMAIL, FROM_PASSWORD)
 
         subject = "Your Login Credentials"
@@ -58,7 +57,6 @@ def send_email(to_email, username, password):
             f"Password: {password}\n\n"
             f"Please log in and enjoy!"
         )
-
         msg = MIMEText(body)
         msg["Subject"] = subject
         msg["From"]    = FROM_EMAIL
@@ -68,69 +66,73 @@ def send_email(to_email, username, password):
         server.quit()
         print("✅ Email sent successfully!")
     except Exception as e:
-        print(f"❌ Failed to send email: {e}")
+        print("❌ Failed to send email:", e)
 
-# === GitHub Auto-Update Credentials.json ===
+# === GitHub Sync ===
 def update_credentials_in_repo(new_email, new_password):
+    auth_url = (
+        f"https://{GIT_USERNAME}:{GITHUB_TOKEN}"
+        f"@github.com/{GIT_USERNAME}/{REPO_NAME}.git"
+    )
+
     try:
-        # 1. Clean out any old clone
+        # 1) Remove any old clone
         if os.path.exists(GITHUB_CLONE_DIR):
             shutil.rmtree(GITHUB_CLONE_DIR)
 
-        # 2. Clone using token auth
-        auth_url = (
-            f"https://{GIT_USERNAME}:{GITHUB_TOKEN}"
-            f"@github.com/{GIT_USERNAME}/pdf_table_extractor.git"
-        )
+        # 2) Clone using auth URL
         subprocess.check_call(["git", "clone", auth_url, GITHUB_CLONE_DIR])
 
-        # 3. Ensure origin push also uses token auth
+        # 3) Reset both fetch and push URL on origin
         subprocess.check_call([
             "git", "-C", GITHUB_CLONE_DIR,
             "remote", "set-url", "origin", auth_url
         ])
+        subprocess.check_call([
+            "git", "-C", GITHUB_CLONE_DIR,
+            "remote", "set-url", "--push", "origin", auth_url
+        ])
 
-        # 4. Load & merge credentials
-        cred_path = os.path.join(GITHUB_CLONE_DIR, "credentials.json")
-        creds = load_json(cred_path)
+        # 4) Load + merge credentials.json
+        creds_path = os.path.join(GITHUB_CLONE_DIR, "credentials.json")
+        creds = load_json(creds_path)
         creds[new_email] = {"password": new_password, "credits": 10}
-        save_json(cred_path, creds)
+        save_json(creds_path, creds)
 
-        # 5. Commit & push
+        # 5) Commit & push
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.email", GIT_EMAIL])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.name",  GIT_USERNAME])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "add",    "credentials.json"])
-        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "commit", "-m",     f"Add new user {new_email}"])
-        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "push",   "origin", GITHUB_BRANCH])
+        subprocess.check_call([
+            "git", "-C", GITHUB_CLONE_DIR, "commit", "-m",
+            f"Add new user {new_email}"
+        ])
+        subprocess.check_call([
+            "git", "-C", GITHUB_CLONE_DIR, "push", "origin", GITHUB_BRANCH
+        ])
 
-        print("✅ Successfully updated credentials.json and pushed to GitHub!")
+        print("✅ Successfully updated and pushed credentials.json to GitHub!")
     except Exception as e:
-        print(f"❌ Failed to update credentials.json in GitHub: {e}")
+        print("❌ GitHub sync error:", e)
 
-# === Gumroad Ping Handler ===
+# === Gumroad Ping ===
 @app.route("/gumroad_ping", methods=["POST"])
 def gumroad_ping():
-    data       = request.form
-    email      = data.get("email")
-    product_id = data.get("product_id")
+    form = request.form
+    email = form.get("email")
+    pid   = form.get("product_id")
+    if not email or not pid:
+        return "Missing email or product_id", 400
 
-    if not email or not product_id:
-        return "Missing required fields", 400
+    pwd        = generate_password()
+    creds      = load_json(CREDENTIALS_FILE)
+    creds[email] = {"password": pwd, "credits": 10}
+    save_json(CREDENTIALS_FILE, creds)
 
-    # generate and save locally
-    password    = generate_password()
-    credentials = load_json(CREDENTIALS_FILE)
-    credentials[email] = {"password": password, "credits": 10}
-    save_json(CREDENTIALS_FILE, credentials)
-
-    # email the buyer
-    send_email(email, email, password)
-
-    # sync into your Streamlit repo on GitHub
-    update_credentials_in_repo(email, password)
+    send_email(email, email, pwd)
+    update_credentials_in_repo(email, pwd)
 
     return "✅ Credentials created and email sent!", 200
 
-# === Run the Flask app ===
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
