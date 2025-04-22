@@ -1,3 +1,4 @@
+""
 from flask import Flask, request
 import json
 import os
@@ -23,7 +24,7 @@ GITHUB_CLONE_DIR = "/tmp/pdf_table_extractor_clone"
 GITHUB_BRANCH = "main"
 GIT_USERNAME = "quesabalovin"
 GIT_EMAIL = "lovin.quesaba@gmail.com"
-GITHUB_TOKEN = "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"  # <-- Make sure this token has repo access to pdf_table_extractor
+GITHUB_TOKEN = "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"
 
 # --- Local Credentials File ---
 CREDENTIALS_FILE = "credentials.json"
@@ -93,8 +94,8 @@ def update_credentials_in_repo(new_email, new_password):
         with open(credentials_path, "w") as f:
             json.dump(credentials_data, f, indent=2)
 
-        subprocess.check_call(["git", "config", "--global", "user.email", GIT_EMAIL])
-        subprocess.check_call(["git", "config", "--global", "user.name", GIT_USERNAME])
+        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.email", GIT_EMAIL])
+        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.name", GIT_USERNAME])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "add", "credentials.json"])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "commit", "-m", f"Add new user {new_email}"])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "push", "origin", GITHUB_BRANCH])
