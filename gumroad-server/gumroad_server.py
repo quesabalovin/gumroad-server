@@ -1,4 +1,3 @@
-# gumroad_server.py
 from flask import Flask, request
 import json
 import os
@@ -16,12 +15,12 @@ app = Flask(__name__)
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
 FROM_EMAIL = "lovinquesaba@gmail.com"       # <-- your Gmail
-FROM_PASSWORD = "uxwszckyahsyklpv"        # <-- your Gmail App Password
+FROM_PASSWORD = "uxwszckyahsyklpv"           # <-- your Gmail App Password
 
 # --- GitHub Settings ---
 GITHUB_REPO_URL = "https://github.com/quesabalovin/pdf_table_extractor.git"
 GITHUB_CLONE_DIR = "/tmp/pdf_table_extractor_clone"
-GITHUB_BRANCH = "main"  # or "master"
+GITHUB_BRANCH = "main"
 GIT_USERNAME = "quesabalovin"
 GIT_EMAIL = "lovin.quesaba@gmail.com"
 GITHUB_TOKEN = "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"
@@ -62,7 +61,7 @@ def send_email(to_email, username, password):
         server.sendmail(FROM_EMAIL, to_email, msg.as_string())
         server.quit()
 
-        print("✅ Email sent successfully!")
+        print("\u2705 Email sent successfully!")
     except Exception as e:
         print(f"❌ Failed to send email: {e}")
 
@@ -74,7 +73,9 @@ def update_credentials_in_repo(new_email, new_password):
             shutil.rmtree(GITHUB_CLONE_DIR)
 
         subprocess.check_call([
-            "git", "clone", f"https://{GITHUB_TOKEN}@github.com/{GIT_USERNAME}/pdf_table_extractor.git", GITHUB_CLONE_DIR
+            "git", "clone",
+            f"https://{GIT_USERNAME}:{GITHUB_TOKEN}@github.com/{GIT_USERNAME}/pdf_table_extractor.git",
+            GITHUB_CLONE_DIR
         ])
 
         credentials_path = os.path.join(GITHUB_CLONE_DIR, "credentials.json")
@@ -103,7 +104,7 @@ def update_credentials_in_repo(new_email, new_password):
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "commit", "-m", f"Add new user {new_email}"])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "push", "origin", GITHUB_BRANCH])
 
-        print("✅ Successfully updated credentials.json and pushed to GitHub!")
+        print("\u2705 Successfully updated credentials.json and pushed to GitHub!")
 
     except Exception as e:
         print(f"❌ Failed to update credentials.json in GitHub: {e}")
@@ -135,7 +136,7 @@ def gumroad_ping():
     # --- Step 4: Update GitHub Repo credentials.json ---
     update_credentials_in_repo(email, password)
 
-    return "✅ Credentials created and email sent!", 200
+    return "\u2705 Credentials created and email sent!", 200
 
 # === Run App ===
 if __name__ == "__main__":
