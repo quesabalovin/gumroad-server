@@ -21,7 +21,7 @@ FROM_PASSWORD = "uxwszckyahsyklpv"                # your App Password
 GITHUB_CLONE_DIR = "/tmp/pdf_table_extractor_clone"
 GIT_USERNAME     = "quesabalovin"
 GIT_EMAIL        = "lovin.quesaba@gmail.com"
-GITHUB_TOKEN     = "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"
+GITHUB_TOKEN     = "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"
 GITHUB_BRANCH    = "main"  # or "master"
 REPO_NAME        = "pdf_table_extractor"
 
