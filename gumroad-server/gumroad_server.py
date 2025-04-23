@@ -10,26 +10,26 @@ import subprocess
 import shutil
 from dotenv import load_dotenv
 
-# === Load environment variables (.env or Render) ===
+# === Load environment variables ===
 load_dotenv()
 
 app = Flask(__name__)
 
-# --- Email Settings (Hardcoded password here) ---
+# --- Email Settings (Hardcoded App Password) ---
 SMTP_SERVER   = "smtp.gmail.com"
 SMTP_PORT     = 465
 FROM_EMAIL    = "lovinquesaba@gmail.com"
 FROM_PASSWORD = "uxwszckyahsyklpv"  # ⚠️ Hardcoded Gmail App Password
 
-# --- GitHub Settings (Token via Render ENV) ---
+# --- GitHub Settings ---
 GITHUB_CLONE_DIR = "/tmp/pdf_table_extractor_clone"
 GIT_USERNAME     = "quesabalovin"
 GIT_EMAIL        = "lovin.quesaba@gmail.com"
-GITHUB_TOKEN     = os.getenv("GITHUB_TOKEN")  # Secure via Render
+GITHUB_TOKEN     = os.getenv("GITHUB_TOKEN")  # Still loaded from environment (Render-safe)
 GITHUB_BRANCH    = "main"
 REPO_NAME        = "pdf_table_extractor"
 
-# --- Local Credentials File ---
+# --- Local Credentials File (for initial local save) ---
 CREDENTIALS_FILE = "credentials.json"
 
 # === Utils ===
@@ -80,24 +80,29 @@ def update_credentials_in_repo(new_email, new_password):
 
     print("🔐 DEBUG: GITHUB_TOKEN loaded:", GITHUB_TOKEN[:5], "...")
 
+    # Correct token URL format
     auth_url = f"https://{GIT_USERNAME}:{GITHUB_TOKEN}@github.com/{GIT_USERNAME}/{REPO_NAME}.git"
 
     try:
+        # 1) Fresh clone
         if os.path.exists(GITHUB_CLONE_DIR):
             shutil.rmtree(GITHUB_CLONE_DIR)
 
         subprocess.check_call(["git", "clone", auth_url, GITHUB_CLONE_DIR])
-        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "remote", "set-url", "origin", auth_url])
-        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "remote", "set-url", "--push", "origin", auth_url])
 
-        creds_path = os.path.join(GITHUB_CLONE_DIR, "credentials.json")
+        # 2) Update nested credentials.json inside pdf_table_extractor/pdf_table_extractor
+        creds_dir = os.path.join(GITHUB_CLONE_DIR, "pdf_table_extractor", "pdf_table_extractor")
+        os.makedirs(creds_dir, exist_ok=True)
+        creds_path = os.path.join(creds_dir, "credentials.json")
+
         creds = load_json(creds_path)
         creds[new_email] = {"password": new_password, "credits": 10}
         save_json(creds_path, creds)
 
+        # 3) Git commit + push
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.email", GIT_EMAIL])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.name", GIT_USERNAME])
-        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "add", "credentials.json"])
+        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "add", "pdf_table_extractor/pdf_table_extractor/credentials.json"])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "commit", "-m", f"Add new user {new_email}"])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "push", "origin", GITHUB_BRANCH])
 
@@ -116,6 +121,8 @@ def gumroad_ping():
         return "Missing email or product_id", 400
 
     pwd = generate_password()
+
+    # Save locally just for redundancy
     creds = load_json(CREDENTIALS_FILE)
     creds[email] = {"password": pwd, "credits": 10}
     save_json(CREDENTIALS_FILE, creds)
@@ -124,6 +131,11 @@ def gumroad_ping():
     update_credentials_in_repo(email, pwd)
 
     return "✅ Credentials created and email sent!", 200
+
+# === Optional: Homepage Route for Gumroad Test Ping ===
+@app.route("/", methods=["GET"])
+def home():
+    return "✅ Gumroad server is running. Use /gumroad_ping to POST user data.", 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
