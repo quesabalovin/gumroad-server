@@ -94,7 +94,7 @@ def update_credentials_in_repo(new_email, new_password):
         creds_path = os.path.join(creds_dir, "credentials.json")
 
         creds = load_json(creds_path)
-        creds[new_email] = {"password": new_password, "credits": 10}
+        creds[new_email] = {"password": new_password, "credits": 100}
         save_json(creds_path, creds)
 
         # Git commit and push
@@ -122,7 +122,7 @@ def gumroad_ping():
 
     # Backup locally (optional)
     creds = load_json(CREDENTIALS_FILE)
-    creds[email] = {"password": pwd, "credits": 10}
+    creds[email] = {"password": pwd, "credits": 100}
     save_json(CREDENTIALS_FILE, creds)
 
     send_email(email, email, pwd)
