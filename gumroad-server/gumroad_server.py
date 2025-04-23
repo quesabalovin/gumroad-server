@@ -10,22 +10,22 @@ import subprocess
 import shutil
 from dotenv import load_dotenv
 
-# === Load environment variables from .env file ===
+# === Load environment variables (.env or Render) ===
 load_dotenv()
 
 app = Flask(__name__)
 
-# --- Email Settings ---
+# --- Email Settings (Hardcoded password here) ---
 SMTP_SERVER   = "smtp.gmail.com"
 SMTP_PORT     = 465
 FROM_EMAIL    = "lovinquesaba@gmail.com"
-FROM_PASSWORD = os.getenv("EMAIL_APP_PASSWORD")  # Securely from .env
+FROM_PASSWORD = "uxwszckyahsyklpv"  # ⚠️ Hardcoded Gmail App Password
 
-# --- GitHub Settings ---
+# --- GitHub Settings (Token via Render ENV) ---
 GITHUB_CLONE_DIR = "/tmp/pdf_table_extractor_clone"
 GIT_USERNAME     = "quesabalovin"
 GIT_EMAIL        = "lovin.quesaba@gmail.com"
-GITHUB_TOKEN     = os.getenv("GITHUB_TOKEN")      # Securely from .env
+GITHUB_TOKEN     = os.getenv("GITHUB_TOKEN")  # Secure via Render
 GITHUB_BRANCH    = "main"
 REPO_NAME        = "pdf_table_extractor"
 
@@ -80,7 +80,6 @@ def update_credentials_in_repo(new_email, new_password):
 
     print("🔐 DEBUG: GITHUB_TOKEN loaded:", GITHUB_TOKEN[:5], "...")
 
-    # Correct GitHub URL format with token as password
     auth_url = f"https://{GIT_USERNAME}:{GITHUB_TOKEN}@github.com/{GIT_USERNAME}/{REPO_NAME}.git"
 
     try:
