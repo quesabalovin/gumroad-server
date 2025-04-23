@@ -8,21 +8,25 @@ import ssl
 from email.mime.text import MIMEText
 import subprocess
 import shutil
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
 # --- Email Settings ---
 SMTP_SERVER   = "smtp.gmail.com"
 SMTP_PORT     = 465
-FROM_EMAIL    = "lovinquesaba@gmail.com"         # your Gmail
-FROM_PASSWORD = "uxwszckyahsyklpv"                # your App Password
+FROM_EMAIL    = "lovinquesaba@gmail.com"          # your Gmail
+FROM_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD")  # stored in .env
 
-# --- GitHub Settings (Fine‑Grained Token) ---
+# --- GitHub Settings (Token from env) ---
 GITHUB_CLONE_DIR = "/tmp/pdf_table_extractor_clone"
 GIT_USERNAME     = "quesabalovin"
 GIT_EMAIL        = "lovin.quesaba@gmail.com"
-GITHUB_TOKEN     = "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"
-GITHUB_BRANCH    = "main"  # or "master"
+GITHUB_TOKEN     = os.environ.get("GITHUB_TOKEN")     # stored in .env
+GITHUB_BRANCH    = "main"
 REPO_NAME        = "pdf_table_extractor"
 
 # --- Local Credentials File ---
@@ -45,7 +49,7 @@ def generate_password(length=10):
 # === Email ===
 def send_email(to_email, username, password):
     try:
-        ctx    = ssl.create_default_context()
+        ctx = ssl.create_default_context()
         server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, context=ctx)
         server.login(FROM_EMAIL, FROM_PASSWORD)
 
@@ -76,40 +80,29 @@ def update_credentials_in_repo(new_email, new_password):
     )
 
     try:
-        # 1) Remove any old clone
+        # 1) Remove old clone
         if os.path.exists(GITHUB_CLONE_DIR):
             shutil.rmtree(GITHUB_CLONE_DIR)
 
         # 2) Clone using auth URL
         subprocess.check_call(["git", "clone", auth_url, GITHUB_CLONE_DIR])
 
-        # 3) Reset both fetch and push URL on origin
-        subprocess.check_call([
-            "git", "-C", GITHUB_CLONE_DIR,
-            "remote", "set-url", "origin", auth_url
-        ])
-        subprocess.check_call([
-            "git", "-C", GITHUB_CLONE_DIR,
-            "remote", "set-url", "--push", "origin", auth_url
-        ])
+        # 3) Set fetch/push URLs
+        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "remote", "set-url", "origin", auth_url])
+        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "remote", "set-url", "--push", "origin", auth_url])
 
-        # 4) Load + merge credentials.json
+        # 4) Update credentials file
         creds_path = os.path.join(GITHUB_CLONE_DIR, "credentials.json")
         creds = load_json(creds_path)
         creds[new_email] = {"password": new_password, "credits": 10}
         save_json(creds_path, creds)
 
-        # 5) Commit & push
+        # 5) Commit & push changes
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.email", GIT_EMAIL])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.name",  GIT_USERNAME])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "add",    "credentials.json"])
-        subprocess.check_call([
-            "git", "-C", GITHUB_CLONE_DIR, "commit", "-m",
-            f"Add new user {new_email}"
-        ])
-        subprocess.check_call([
-            "git", "-C", GITHUB_CLONE_DIR, "push", "origin", GITHUB_BRANCH
-        ])
+        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "commit", "-m", f"Add new user {new_email}"])
+        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "push", "origin", GITHUB_BRANCH])
 
         print("✅ Successfully updated and pushed credentials.json to GitHub!")
     except Exception as e:
@@ -124,8 +117,8 @@ def gumroad_ping():
     if not email or not pid:
         return "Missing email or product_id", 400
 
-    pwd        = generate_password()
-    creds      = load_json(CREDENTIALS_FILE)
+    pwd = generate_password()
+    creds = load_json(CREDENTIALS_FILE)
     creds[email] = {"password": pwd, "credits": 10}
     save_json(CREDENTIALS_FILE, creds)
 
