@@ -74,20 +74,25 @@ def send_email(to_email, username, password):
 
 # === GitHub Sync ===
 def update_credentials_in_repo(new_email, new_password):
-    auth_url = (
-        f"https://{GIT_USERNAME}:{GITHUB_TOKEN}"
-        f"@github.com/{GIT_USERNAME}/{REPO_NAME}.git"
-    )
+    # Debugging token load
+    if not GITHUB_TOKEN:
+        print("❌ ERROR: GITHUB_TOKEN is not set or failed to load from environment.")
+        return
+
+    print("🔐 DEBUG: GITHUB_TOKEN loaded, begins with:", GITHUB_TOKEN[:5], "...")
+
+    # Use correct GitHub HTTPS auth format
+    auth_url = f"https://{GITHUB_TOKEN}@github.com/{GIT_USERNAME}/{REPO_NAME}.git"
 
     try:
         # 1) Remove old clone
         if os.path.exists(GITHUB_CLONE_DIR):
             shutil.rmtree(GITHUB_CLONE_DIR)
 
-        # 2) Clone using auth URL
+        # 2) Clone using the secure token-based URL
         subprocess.check_call(["git", "clone", auth_url, GITHUB_CLONE_DIR])
 
-        # 3) Set fetch/push URLs
+        # 3) Reset fetch/push URLs
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "remote", "set-url", "origin", auth_url])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "remote", "set-url", "--push", "origin", auth_url])
 
@@ -99,8 +104,8 @@ def update_credentials_in_repo(new_email, new_password):
 
         # 5) Commit & push changes
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.email", GIT_EMAIL])
-        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.name",  GIT_USERNAME])
-        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "add",    "credentials.json"])
+        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.name", GIT_USERNAME])
+        subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "add", "credentials.json"])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "commit", "-m", f"Add new user {new_email}"])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "push", "origin", GITHUB_BRANCH])
 
