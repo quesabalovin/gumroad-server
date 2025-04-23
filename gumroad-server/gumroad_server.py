@@ -81,28 +81,28 @@ def update_credentials_in_repo(new_email, new_password):
 
     print("🔐 DEBUG: GITHUB_TOKEN loaded, begins with:", GITHUB_TOKEN[:5], "...")
 
-    # Use correct GitHub HTTPS auth format
+    # ✅ Correct GitHub clone URL format (token as password)
     auth_url = f"https://{GITHUB_TOKEN}@github.com/{GIT_USERNAME}/{REPO_NAME}.git"
 
     try:
-        # 1) Remove old clone
+        # 1) Remove any existing clone
         if os.path.exists(GITHUB_CLONE_DIR):
             shutil.rmtree(GITHUB_CLONE_DIR)
 
-        # 2) Clone using the secure token-based URL
+        # 2) Clone using token-authenticated URL
         subprocess.check_call(["git", "clone", auth_url, GITHUB_CLONE_DIR])
 
-        # 3) Reset fetch/push URLs
+        # 3) Reset fetch and push URLs
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "remote", "set-url", "origin", auth_url])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "remote", "set-url", "--push", "origin", auth_url])
 
-        # 4) Update credentials file
+        # 4) Update the credentials file
         creds_path = os.path.join(GITHUB_CLONE_DIR, "credentials.json")
         creds = load_json(creds_path)
         creds[new_email] = {"password": new_password, "credits": 10}
         save_json(creds_path, creds)
 
-        # 5) Commit & push changes
+        # 5) Commit and push the changes
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.email", GIT_EMAIL])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.name", GIT_USERNAME])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "add", "credentials.json"])
@@ -110,6 +110,7 @@ def update_credentials_in_repo(new_email, new_password):
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "push", "origin", GITHUB_BRANCH])
 
         print("✅ Successfully updated and pushed credentials.json to GitHub!")
+
     except Exception as e:
         print("❌ GitHub sync error:", e)
 
