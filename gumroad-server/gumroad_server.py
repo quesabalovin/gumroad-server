@@ -10,7 +10,7 @@ import subprocess
 import shutil
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# === Load environment variables from .env file ===
 load_dotenv()
 
 app = Flask(__name__)
@@ -18,14 +18,14 @@ app = Flask(__name__)
 # --- Email Settings ---
 SMTP_SERVER   = "smtp.gmail.com"
 SMTP_PORT     = 465
-FROM_EMAIL    = "lovinquesaba@gmail.com"          # your Gmail
-FROM_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD")  # stored in .env
+FROM_EMAIL    = "lovinquesaba@gmail.com"
+FROM_PASSWORD = os.getenv("EMAIL_APP_PASSWORD")  # Securely from .env
 
-# --- GitHub Settings (Token from env) ---
+# --- GitHub Settings ---
 GITHUB_CLONE_DIR = "/tmp/pdf_table_extractor_clone"
 GIT_USERNAME     = "quesabalovin"
 GIT_EMAIL        = "lovin.quesaba@gmail.com"
-GITHUB_TOKEN     = os.environ.get("GITHUB_TOKEN")     # stored in .env
+GITHUB_TOKEN     = os.getenv("GITHUB_TOKEN")      # Securely from .env
 GITHUB_BRANCH    = "main"
 REPO_NAME        = "pdf_table_extractor"
 
@@ -74,14 +74,13 @@ def send_email(to_email, username, password):
 
 # === GitHub Sync ===
 def update_credentials_in_repo(new_email, new_password):
-    # Debugging token load
     if not GITHUB_TOKEN:
         print("❌ ERROR: GITHUB_TOKEN is not set or failed to load from environment.")
         return
 
-    print("🔐 DEBUG: GITHUB_TOKEN loaded, begins with:", GITHUB_TOKEN[:5], "...")
+    print("🔐 DEBUG: GITHUB_TOKEN loaded:", GITHUB_TOKEN[:5], "...")
 
-    # ✅ Proper format: username:token@github.com
+    # Correct GitHub URL format with token as password
     auth_url = f"https://{GIT_USERNAME}:{GITHUB_TOKEN}@github.com/{GIT_USERNAME}/{REPO_NAME}.git"
 
     try:
