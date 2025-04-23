@@ -18,8 +18,8 @@ app = Flask(__name__)
 # --- Email Settings (Hardcoded App Password) ---
 SMTP_SERVER   = "smtp.gmail.com"
 SMTP_PORT     = 465
-FROM_EMAIL    = "lovinquesaba@gmail.com"
-FROM_PASSWORD = "uxwszckyahsyklpv"  # ⚠️ Hardcoded Gmail App Password
+FROM_EMAIL    = "lovinquesaba17@gmail.com"
+FROM_PASSWORD = "vwljbmhtwdvqlrrj"  # ⚠️ Hardcoded Gmail App Password
 
 # --- GitHub Settings ---
 GITHUB_CLONE_DIR = "/tmp/pdf_table_extractor_clone"
@@ -59,7 +59,7 @@ def send_email(to_email, username, password):
             f"Here are your login credentials:\n\n"
             f"Email: {username}\n"
             f"Password: {password}\n\n"
-            f"Please log in and enjoy!"
+            f"Please log in right here https://pdf-table-extractor-lnwk.onrender.com and enjoy!"
         )
         msg = MIMEText(body)
         msg["Subject"] = subject
