@@ -62,7 +62,7 @@ def send_email(to_email, username, password):
             f"Here are your login credentials:\n\n"
             f"Email: {username}\n"
             f"Password: {password}\n\n"
-            f"Please log in right here https://pdf-table-extractor-lnwk.onrender.com and enjoy!"
+            f"Please log in right here https://pdf-table-extractor-o8u6.onrender.com and enjoy!"
         )
         msg = MIMEText(body)
         msg["Subject"] = subject
