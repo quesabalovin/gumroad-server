@@ -35,7 +35,9 @@ CREDENTIALS_FILE = "credentials.json"
 # === Utils ===
 def load_json(path):
     if not os.path.exists(path):
-        return {}
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            json.dump({}, f)
     with open(path, "r") as f:
         return json.load(f)
 
