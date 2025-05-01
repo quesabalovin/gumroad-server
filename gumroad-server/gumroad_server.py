@@ -11,29 +11,29 @@ import shutil
 from dotenv import load_dotenv
 from datetime import datetime
 
-# === Load environment variables from .env file (optional) ===
+# === Load environment variables (for GitHub token etc.) ===
 load_dotenv()
 
 app = Flask(__name__)
 
-# --- Email Settings ---
+# --- Email Settings (Hardcoded for now) ---
 SMTP_SERVER   = "smtp.gmail.com"
 SMTP_PORT     = 465
 FROM_EMAIL    = "lovinquesaba17@gmail.com"
-FROM_PASSWORD = os.getenv("EMAIL_APP_PASSWORD")  # ✅ Use .env or Render secrets
+FROM_PASSWORD = "vwljbmhtwdvqlrrj"  # ⚠️ Hardcoded Gmail App Password
 
 # --- GitHub Settings ---
 GITHUB_CLONE_DIR = "/tmp/pdf_table_extractor_clone"
 GIT_USERNAME     = "quesabalovin"
 GIT_EMAIL        = "lovin.quesaba@gmail.com"
-GITHUB_TOKEN     = os.getenv("GITHUB_TOKEN")
+GITHUB_TOKEN     = os.getenv("GITHUB_TOKEN")  # Must be set via environment
 GITHUB_BRANCH    = "main"
 REPO_NAME        = "pdf_table_extractor"
 
-# --- Local Credentials Backup ---
+# --- Local Backup ---
 CREDENTIALS_FILE = "credentials.json"
 
-# === Utilities ===
+# === Utility Functions ===
 def load_json(path):
     if not os.path.exists(path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -76,7 +76,7 @@ def send_email(to_email, username, password):
     except Exception as e:
         print("❌ Failed to send email:", e, flush=True)
 
-# === GitHub Update ===
+# === GitHub Sync ===
 def update_credentials_in_repo(new_email, new_password):
     if not GITHUB_TOKEN:
         print("❌ GITHUB_TOKEN not found in environment.", flush=True)
@@ -104,7 +104,7 @@ def update_credentials_in_repo(new_email, new_password):
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "commit", "-m", f"Add new user {new_email}"])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "push", "origin", GITHUB_BRANCH])
 
-        print("✅ GitHub sync completed.", flush=True)
+        print("✅ GitHub credentials updated.", flush=True)
     except Exception as e:
         print("❌ GitHub sync failed:", e, flush=True)
 
@@ -127,19 +127,19 @@ def gumroad_ping():
 
     return "✅ Credentials created and email sent!", 200
 
-# === Health Endpoint for Cron Job Ping ===
+# === Health Check for cron-job.org ===
 @app.route("/health", methods=["GET"])
 def health_check():
     now = datetime.utcnow().isoformat()
     print(f"🟢 Cron-job.org ping at {now} UTC", flush=True)
     return "✅ Server is awake!", 200
 
-# === Home Page ===
+# === Home Route ===
 @app.route("/", methods=["GET"])
 def home():
     return "✅ Gumroad server is live. Use POST /gumroad_ping to register users.", 200
 
-# === App Runner ===
+# === Start Server ===
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
