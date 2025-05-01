@@ -142,7 +142,14 @@ def home():
 def health_check():
     now = datetime.utcnow().isoformat()
     print(f"🟢 Health check received at {now} UTC")
-    return "✅ Gumroad server is up and running!", 200
+
+    try:
+        subprocess.Popen(["python3", "gumroad_server.py"])
+        return "✅ Server script triggered successfully!", 200
+    except Exception as e:
+        print("❌ Failed to trigger gumroad_server.py:", e)
+        return f"❌ Error triggering script: {e}", 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
