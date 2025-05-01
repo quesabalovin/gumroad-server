@@ -20,17 +20,17 @@ app = Flask(__name__)
 SMTP_SERVER   = "smtp.gmail.com"
 SMTP_PORT     = 465
 FROM_EMAIL    = "lovinquesaba17@gmail.com"
-FROM_PASSWORD = "vwljbmhtwdvqlrrj"  # ⚠️ Hardcoded Gmail App Password
+FROM_PASSWORD = "vwljbmhtwdvqlrrj"  # ⚠️ Ideally load this from env!
 
 # --- GitHub Settings ---
 GITHUB_CLONE_DIR = "/tmp/pdf_table_extractor_clone"
 GIT_USERNAME     = "quesabalovin"
 GIT_EMAIL        = "lovin.quesaba@gmail.com"
-GITHUB_TOKEN     = os.getenv("GITHUB_TOKEN")  # Pulled from Render ENV
+GITHUB_TOKEN     = os.getenv("GITHUB_TOKEN")
 GITHUB_BRANCH    = "main"
 REPO_NAME        = "pdf_table_extractor"
 
-# --- Local Backup (optional) ---
+# --- Local Backup ---
 CREDENTIALS_FILE = "credentials.json"
 
 # === Utils ===
@@ -62,7 +62,7 @@ def send_email(to_email, username, password):
             f"Here are your login credentials:\n\n"
             f"Email: {username}\n"
             f"Password: {password}\n\n"
-            f"Please log in right here https://pdf-table-extractor-o8u6.onrender.com and enjoy!"
+            f"Please log in at https://pdf-table-extractor-o8u6.onrender.com and enjoy!"
         )
         msg = MIMEText(body)
         msg["Subject"] = subject
@@ -78,10 +78,10 @@ def send_email(to_email, username, password):
 # === GitHub Sync ===
 def update_credentials_in_repo(new_email, new_password):
     if not GITHUB_TOKEN:
-        print("❌ ERROR: GITHUB_TOKEN is not set or failed to load from environment.")
+        print("❌ ERROR: GITHUB_TOKEN is not set.")
         return
 
-    print("🔐 DEBUG: GITHUB_TOKEN loaded:", GITHUB_TOKEN[:5], "...")
+    print("🔐 GITHUB_TOKEN detected.")
 
     auth_url = f"https://{GIT_USERNAME}:{GITHUB_TOKEN}@github.com/{GIT_USERNAME}/{REPO_NAME}.git"
 
@@ -91,7 +91,6 @@ def update_credentials_in_repo(new_email, new_password):
 
         subprocess.check_call(["git", "clone", auth_url, GITHUB_CLONE_DIR])
 
-        # ✅ Save to pdf_table_extractor/credentials.json (no extra subfolder)
         creds_dir = os.path.join(GITHUB_CLONE_DIR, "pdf_table_extractor")
         os.makedirs(creds_dir, exist_ok=True)
         creds_path = os.path.join(creds_dir, "credentials.json")
@@ -100,17 +99,15 @@ def update_credentials_in_repo(new_email, new_password):
         creds[new_email] = {"password": new_password, "credits": 100}
         save_json(creds_path, creds)
 
-        # Git commit and push
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.email", GIT_EMAIL])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "config", "user.name", GIT_USERNAME])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "add", "pdf_table_extractor/credentials.json"])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "commit", "-m", f"Add new user {new_email}"])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "push", "origin", GITHUB_BRANCH])
 
-        print("✅ Successfully updated and pushed credentials.json to GitHub!")
-
+        print("✅ GitHub credentials updated.")
     except Exception as e:
-        print("❌ GitHub sync error:", e)
+        print("❌ GitHub sync failed:", e)
 
 # === Gumroad Ping Endpoint ===
 @app.route("/gumroad_ping", methods=["POST"])
@@ -122,8 +119,6 @@ def gumroad_ping():
         return "Missing email or product_id", 400
 
     pwd = generate_password()
-
-    # Backup locally (optional)
     creds = load_json(CREDENTIALS_FILE)
     creds[email] = {"password": pwd, "credits": 100}
     save_json(CREDENTIALS_FILE, creds)
@@ -133,17 +128,19 @@ def gumroad_ping():
 
     return "✅ Credentials created and email sent!", 200
 
-# Optional: Home route for Render's test pings
+# === Health Check Endpoint (for Render Cron ping) ===
+@app.route("/health", methods=["GET"])
+def health_check():
+    now = datetime.utcnow().isoformat()
+    print(f"🟢 Render Cron Ping at {now} UTC", flush=True)
+    return "✅ Server is awake!", 200
+
+# === Home route ===
 @app.route("/", methods=["GET"])
 def home():
     return "✅ Gumroad server is live. Use POST /gumroad_ping to register users.", 200
 
-@app.route("/health", methods=["GET"])
-def health_check():
-    now = datetime.utcnow().isoformat()
-    print(f"🟢 Keep-alive ping at {now} UTC", flush=True)
-    return "✅ Server is awake!", 200
-
+# === Run App ===
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
