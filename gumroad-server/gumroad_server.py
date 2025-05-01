@@ -11,16 +11,16 @@ import shutil
 from dotenv import load_dotenv
 from datetime import datetime
 
-# === Load environment variables ===
+# === Load environment variables from .env file (optional) ===
 load_dotenv()
 
 app = Flask(__name__)
 
-# --- Email Settings (Hardcoded App Password) ---
+# --- Email Settings ---
 SMTP_SERVER   = "smtp.gmail.com"
 SMTP_PORT     = 465
 FROM_EMAIL    = "lovinquesaba17@gmail.com"
-FROM_PASSWORD = "vwljbmhtwdvqlrrj"  # ⚠️ Ideally load this from env!
+FROM_PASSWORD = os.getenv("EMAIL_APP_PASSWORD")  # ✅ Use .env or Render secrets
 
 # --- GitHub Settings ---
 GITHUB_CLONE_DIR = "/tmp/pdf_table_extractor_clone"
@@ -30,10 +30,10 @@ GITHUB_TOKEN     = os.getenv("GITHUB_TOKEN")
 GITHUB_BRANCH    = "main"
 REPO_NAME        = "pdf_table_extractor"
 
-# --- Local Backup ---
+# --- Local Credentials Backup ---
 CREDENTIALS_FILE = "credentials.json"
 
-# === Utils ===
+# === Utilities ===
 def load_json(path):
     if not os.path.exists(path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -49,7 +49,7 @@ def save_json(path, data):
 def generate_password(length=10):
     return "".join(random.choices(string.ascii_letters + string.digits, k=length))
 
-# === Email ===
+# === Email Sending ===
 def send_email(to_email, username, password):
     try:
         ctx = ssl.create_default_context()
@@ -62,7 +62,8 @@ def send_email(to_email, username, password):
             f"Here are your login credentials:\n\n"
             f"Email: {username}\n"
             f"Password: {password}\n\n"
-            f"Please log in at https://pdf-table-extractor-o8u6.onrender.com and enjoy!"
+            f"Please log in at https://pdf-table-extractor-o8u6.onrender.com\n\n"
+            f"Enjoy!"
         )
         msg = MIMEText(body)
         msg["Subject"] = subject
@@ -71,17 +72,15 @@ def send_email(to_email, username, password):
 
         server.sendmail(FROM_EMAIL, to_email, msg.as_string())
         server.quit()
-        print("✅ Email sent successfully!")
+        print("✅ Email sent successfully!", flush=True)
     except Exception as e:
-        print("❌ Failed to send email:", e)
+        print("❌ Failed to send email:", e, flush=True)
 
-# === GitHub Sync ===
+# === GitHub Update ===
 def update_credentials_in_repo(new_email, new_password):
     if not GITHUB_TOKEN:
-        print("❌ ERROR: GITHUB_TOKEN is not set.")
+        print("❌ GITHUB_TOKEN not found in environment.", flush=True)
         return
-
-    print("🔐 GITHUB_TOKEN detected.")
 
     auth_url = f"https://{GIT_USERNAME}:{GITHUB_TOKEN}@github.com/{GIT_USERNAME}/{REPO_NAME}.git"
 
@@ -105,11 +104,11 @@ def update_credentials_in_repo(new_email, new_password):
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "commit", "-m", f"Add new user {new_email}"])
         subprocess.check_call(["git", "-C", GITHUB_CLONE_DIR, "push", "origin", GITHUB_BRANCH])
 
-        print("✅ GitHub credentials updated.")
+        print("✅ GitHub sync completed.", flush=True)
     except Exception as e:
-        print("❌ GitHub sync failed:", e)
+        print("❌ GitHub sync failed:", e, flush=True)
 
-# === Gumroad Ping Endpoint ===
+# === Gumroad Webhook Handler ===
 @app.route("/gumroad_ping", methods=["POST"])
 def gumroad_ping():
     form = request.form
@@ -128,19 +127,19 @@ def gumroad_ping():
 
     return "✅ Credentials created and email sent!", 200
 
-# === Health Check Endpoint (for Render Cron ping) ===
+# === Health Endpoint for Cron Job Ping ===
 @app.route("/health", methods=["GET"])
 def health_check():
     now = datetime.utcnow().isoformat()
-    print(f"🟢 Render Cron Ping at {now} UTC", flush=True)
+    print(f"🟢 Cron-job.org ping at {now} UTC", flush=True)
     return "✅ Server is awake!", 200
 
-# === Home route ===
+# === Home Page ===
 @app.route("/", methods=["GET"])
 def home():
     return "✅ Gumroad server is live. Use POST /gumroad_ping to register users.", 200
 
-# === Run App ===
+# === App Runner ===
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
