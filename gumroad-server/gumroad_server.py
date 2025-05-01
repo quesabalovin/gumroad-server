@@ -140,16 +140,7 @@ def home():
 
 @app.route("/health", methods=["GET"])
 def health_check():
-    now = datetime.utcnow().isoformat()
-    print(f"🟢 Health check received at {now} UTC")
-
-    try:
-        subprocess.Popen(["python3", "gumroad_server.py"])
-        return "✅ Server script triggered successfully!", 200
-    except Exception as e:
-        print("❌ Failed to trigger gumroad_server.py:", e)
-        return f"❌ Error triggering script: {e}", 500
-
+    return "✅ Server is awake!", 200
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
