@@ -140,6 +140,8 @@ def home():
 
 @app.route("/health", methods=["GET"])
 def health_check():
+    now = datetime.utcnow().isoformat()
+    print(f"🟢 Keep-alive ping at {now} UTC", flush=True)
     return "✅ Server is awake!", 200
 
 if __name__ == "__main__":
