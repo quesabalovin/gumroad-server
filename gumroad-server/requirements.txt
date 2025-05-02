@@ -1,2 +1,5 @@
-Flask
+Flask-SQLAlchemy
+Flask-Migrate
+psycopg2-binary  # Or just psycopg2 if you prefer compiling
+passlib[bcrypt]
 python-dotenv
