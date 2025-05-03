@@ -121,19 +121,17 @@ def send_credentials_email(to_email, generated_password):
 
             subject = "Your PDF Table Extractor Pro Access"
             # --- !!! UPDATE THE URL BELOW !!! ---
-            streamlit_app_url = "https://YOUR-STREAMLIT-APP-URL.onrender.com" # Replace with actual URL
+            streamlit_app_url = "https://pdf-table-extractor-e4oj.onrender.com" # Replace with actual URL
             # --- -------------------------- ---
             body = (
                 f"Hello,\n\n"
-                f"Thank you for purchasing PDF Table Extractor Pro!\n\n"
+                f"Thank you for purchasing PDF Table Data Extractor + Multi Language Translator!\n\n"
                 f"Please use the following credentials to log in:\n\n"
                 f"Email: {to_email}\n"
                 f"Generated Password: {generated_password}\n\n"
                 f"Access the tool here: {streamlit_app_url}\n\n"
                 f"We recommend storing this password securely.\n\n"
-                f"If you encounter any issues, please contact support.\n\n" # Add support contact if available
-                f"Best regards,\n"
-                f"The PDF Extractor Team" # Or your brand/name
+                f"If you encounter any issues, please reply to this email." # Add support contact if available
             )
             msg = MIMEText(body, 'plain', 'utf-8') # Ensure UTF-8 encoding
             msg["Subject"] = subject
